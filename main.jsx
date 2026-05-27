@@ -23,7 +23,7 @@ function App(){
  useEffect(()=>save('teclaprime_products',products),[products]); useEffect(()=>save('teclaprime_orders',orders),[orders]);
  const filtered=useMemo(()=>products.filter(p=>(category==='Todos'||p.category===category)&&(p.name.toLowerCase().includes(search.toLowerCase())||p.sku.toLowerCase().includes(search.toLowerCase()))),[products,search,category]);
  function makeOrder(p){
-  const link = "SEU_LINK_MERCADOPAGO";
+  const link = "https://mpago.la/1eZBHVj";
   window.open(link, "_blank");
 }const customer=prompt('Nome do cliente:');if(!customer)return;const phone=prompt('WhatsApp do cliente:')||'';setOrders([{id:'PED-'+Date.now(),date:new Date().toLocaleString('pt-BR'),customer,phone,product:p.name,price:p.price,status:'Novo'},...orders]);alert('Pedido criado no painel!');}
  if(page==='admin')return <Admin products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} goHome={()=>{history.pushState(null,'','/');setPage('home')}}/>;
