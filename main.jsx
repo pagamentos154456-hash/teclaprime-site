@@ -40,6 +40,12 @@ function price30(v){return Math.round(Number(v||0)*0.7);}
 function slug(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}
 function load(k,f){try{const s=localStorage.getItem(k);return s?JSON.parse(s):f}catch{return f}}
 function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function getImages(p){
+  if(Array.isArray(p.images) && p.images.length) return p.images;
+  if(p.image) return [p.image, p.image, p.image];
+  const fallback = categoryImages[p.category] || categoryImages['Teclados'];
+  return [fallback, fallback, fallback];
+}
 const gold = '#d4a24c';
 
 function normalizeProduct(p, i=0){
@@ -55,7 +61,8 @@ function normalizeProduct(p, i=0){
     competitorPrice,
     price,
     stock: Number(p.stock || p.estoque || 1),
-    image: p.image || p.imagem || categoryImages[category] || categoryImages['Teclados'],
+    image: p.image || p.imagem || (Array.isArray(p.images) ? p.images[0] : '') || categoryImages[category] || categoryImages['Teclados'],
+    images: Array.isArray(p.images) ? p.images : (Array.isArray(p.imagens) ? p.imagens : [p.image || p.imagem || categoryImages[category] || categoryImages['Teclados'], p.image || p.imagem || categoryImages[category] || categoryImages['Teclados'], p.image || p.imagem || categoryImages[category] || categoryImages['Teclados']]),
     description: p.description || p.descricao || `${name} com excelente qualidade, preço especial no Pix e envio rápido pela TeclaPrime.`,
     tag: p.tag || '30% OFF NO PIX',
     rating: p.rating || '4.8',
@@ -70,6 +77,7 @@ function App(){
   const [search,setSearch]=useState('');
   const [category,setCategory]=useState('Todos');
   const [visible,setVisible]=useState(PAGE_SIZE);
+  const [selectedProduct,setSelectedProduct]=useState(null);
 
   useEffect(()=>save('teclaprime_products',products),[products]);
   useEffect(()=>save('teclaprime_orders',orders),[orders]);
@@ -135,12 +143,12 @@ function App(){
       <section style={{border:'1px solid rgba(212,162,76,.5)',borderRadius:12,marginTop:0,padding:'20px 28px 30px',background:'rgba(0,0,0,.75)'}}>
         <p style={{margin:0,color:gold,fontWeight:900,textTransform:'uppercase',letterSpacing:1}}>Vitrine Premium</p>
         <h3 style={{fontFamily:'Georgia, serif',fontSize:31,marginTop:0}}>Melhores ofertas em destaque</h3>
-        <ProductGrid products={featured.length?featured:products.slice(0,8)} makeOrder={makeOrder}/>
+        <ProductGrid products={featured.length?featured:products.slice(0,8)} makeOrder={makeOrder} openProduct={setSelectedProduct}/>
       </section>
 
       <section style={{marginTop:35}}>
         <h3 style={{fontFamily:'Georgia, serif',fontSize:30}}>Catálogo completo ({filtered.length} produtos)</h3>
-        <ProductGrid products={shown} makeOrder={makeOrder}/>
+        <ProductGrid products={shown} makeOrder={makeOrder} openProduct={setSelectedProduct}/>
         {visible < filtered.length && <button onClick={()=>setVisible(visible+PAGE_SIZE)} style={{margin:'28px auto',display:'block',background:'transparent',border:`1px solid ${gold}`,color:gold,borderRadius:8,padding:'14px 40px',fontWeight:900}}>MOSTRAR MAIS PRODUTOS</button>}
       </section>
 
@@ -154,24 +162,61 @@ function App(){
         </div>
       </section>
     </main>
+
+    {selectedProduct && <ProductModal product={selectedProduct} close={()=>setSelectedProduct(null)} makeOrder={makeOrder}/>}
+
   </div>
 }
 
-function ProductGrid({products,makeOrder}){
+function ProductGrid({products,makeOrder,openProduct}){
   return <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:22}}>
     {products.map(p=><article key={p.id} style={{background:'linear-gradient(180deg,#0c0c0c,#050505)',border:'1px solid rgba(212,162,76,.45)',borderRadius:16,overflow:'hidden',boxShadow:'0 18px 45px rgba(0,0,0,.55)'}}>
-      <div style={{height:210,position:'relative',background:'#030303'}}><img alt={p.name} src={p.image} loading='lazy' style={{width:'100%',height:'100%',objectFit:'cover',opacity:.92}}/><span style={{position:'absolute',top:12,left:12,background:'linear-gradient(135deg,#9a670e,#e0b45b)',color:'#fff',borderRadius:4,padding:'7px 11px',fontWeight:900,fontSize:12}}>{p.tag||'30% OFF NO PIX'}</span></div>
+      <div style={{height:210,position:'relative',background:'#030303'}}><img alt={p.name} src={getImages(p)[0]} loading='lazy' style={{width:'100%',height:'100%',objectFit:'cover',opacity:.92}}/><span style={{position:'absolute',top:12,left:12,background:'linear-gradient(135deg,#9a670e,#e0b45b)',color:'#fff',borderRadius:4,padding:'7px 11px',fontWeight:900,fontSize:12}}>{p.tag||'30% OFF NO PIX'}</span></div>
       <div style={{padding:18}}>
         <div style={{color:gold,fontWeight:800,fontSize:13,display:'flex',gap:7,alignItems:'center'}}><Star size={15} fill='currentColor'/> {p.rating||'4.8'} <span style={{color:'#777'}}> | SKU: {p.sku}</span></div>
         <h4 style={{fontSize:17,minHeight:42}}>{p.name}</h4>
         <p style={{fontSize:13,color:'#ccc',lineHeight:1.35,minHeight:72}}>{p.description}</p>
-        <p style={{color:'#aaa',margin:'8px 0 2px'}}>Cartão/Boleto: <b>{money(p.competitorPrice)}</b></p>
+        <button onClick={()=>openProduct(p)} style={{width:'100%',border:'1px solid rgba(212,162,76,.5)',borderRadius:7,background:'transparent',color:gold,padding:10,fontWeight:900,marginBottom:10}}>VER 3 FOTOS</button><p style={{color:'#aaa',margin:'8px 0 2px'}}>Cartão/Boleto: <b>{money(p.competitorPrice)}</b></p>
         <p style={{fontSize:25,fontWeight:900,margin:'2px 0',color:gold}}>Pix: {money(p.price)}</p>
         <button onClick={()=>makeOrder(p)} style={{width:'100%',border:0,borderRadius:7,background:'linear-gradient(135deg,#a87118,#dfad4a)',color:'#fff',padding:14,fontWeight:900,fontSize:15}}><ShoppingCart size={18}/> COMPRAR</button>
       </div>
     </article>)}
   </div>
 }
+
+
+function ProductModal({product,close,makeOrder}){
+  const imgs = getImages(product);
+  const [main,setMain]=useState(imgs[0]);
+  return <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.82)',zIndex:99,display:'grid',placeItems:'center',padding:20}}>
+    <div style={{background:'#080808',border:`1px solid ${gold}`,borderRadius:18,maxWidth:980,width:'100%',maxHeight:'92vh',overflow:'auto',color:'#fff',boxShadow:'0 30px 90px rgba(0,0,0,.7)'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:18,borderBottom:'1px solid rgba(212,162,76,.35)'}}>
+        <h2 style={{margin:0,fontFamily:'Georgia, serif'}}>{product.name}</h2>
+        <button onClick={close} style={{background:'transparent',border:`1px solid ${gold}`,color:gold,borderRadius:8,padding:'8px 14px',fontWeight:900}}>FECHAR</button>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1.1fr .9fr',gap:22,padding:22}}>
+        <div>
+          <img src={main} alt={product.name} style={{width:'100%',height:430,objectFit:'cover',borderRadius:14,border:'1px solid rgba(212,162,76,.25)'}}/>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginTop:12}}>
+            {imgs.slice(0,3).map((img,i)=><button key={i} onClick={()=>setMain(img)} style={{border:main===img?`2px solid ${gold}`:'1px solid rgba(255,255,255,.18)',background:'#050505',borderRadius:10,padding:4}}>
+              <img src={img} alt={product.name+' '+i} style={{width:'100%',height:90,objectFit:'cover',borderRadius:7}}/>
+              <small style={{color:'#ddd'}}>{i===0?'Frente':i===1?'Lado':'Trás'}</small>
+            </button>)}
+          </div>
+        </div>
+        <div>
+          <p style={{color:gold,fontWeight:900}}>SKU: {product.sku}</p>
+          <p style={{color:'#ddd',lineHeight:1.55}}>{product.description}</p>
+          <p style={{color:'#aaa'}}>Cartão/Boleto: <b>{money(product.competitorPrice)}</b></p>
+          <p style={{fontSize:34,fontWeight:900,color:gold,margin:'8px 0'}}>Pix: {money(product.price)}</p>
+          <p style={{color:'#ccc'}}>Desconto de 30% válido somente para pagamento via Pix.</p>
+          <button onClick={()=>makeOrder(product)} style={{width:'100%',border:0,borderRadius:8,background:'linear-gradient(135deg,#a87118,#dfad4a)',color:'#fff',padding:16,fontWeight:900,fontSize:16,marginTop:15}}>COMPRAR AGORA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
 
 function Admin({products,setProducts,orders,setOrders,goHome}){
   const [logged,setLogged]=useState(localStorage.getItem('teclaprime_admin')==='yes');
