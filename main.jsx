@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Search, ShoppingCart, User, Star, Truck, ShieldCheck, CreditCard, MessageCircle, Plus, Pencil, Trash2, Package, ClipboardList, Save, Home } from 'lucide-react';
-import './style.css';
 
 const ADMIN_PASSWORD = '123456';
 const categories = ['Todos','Pianos Digitais','Teclados','Controladores','Pedais','Suportes','Áudio','Acessórios','Promoções'];
